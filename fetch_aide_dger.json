@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "exported_at": "2025-06-28T21:03:40.000Z",
+  "source": "specific_mapping",
+  "demarche_name": "dger-aide-mobilite-individuelle",
+  "demarche_id": "",
+  "grist_config": {
+    "selected_table": "Mobilites_apprenants"
+  },
+  "field_mappings": {
+    "Q2hhbXAtMTI1NjEzMQ==": {
+      "columnId": "Numero_dossier",
+      "columnLabel": "Numero_dossier"
+    },
+    "Q2hhbXAtMjEzNzE1MQ==": {
+      "columnId": "Civilite",
+      "columnLabel": "Civilite"
+    },
+    "Q2hhbXAtMjEzNzE1Mg==": {
+      "columnId": "Nom",
+      "columnLabel": "Nom"
+    },
+    "Q2hhbXAtMjEzNzE1Mw==": {
+      "columnId": "Prenom",
+      "columnLabel": "Prenom"
+    },
+    "Q2hhbXAtMzA1MDk3MA==": {
+      "columnId": "Type_mobilite",
+      "columnLabel": "Type_mobilite"
+    },
+    "Q2hhbXAtMzM0ODY4Ng==": {
+      "columnId": "Region",
+      "columnLabel": "Region"
+    },
+    "Q2hhbXAtNDc5MTkzOQ==": {
+      "columnId": "Zone_mobilite",
+      "columnLabel": "Zone_mobilite"
+    },
+    "Q2hhbXAtNDczNDk2NA==": {
+      "columnId": "Pays",
+      "columnLabel": "Pays"
+    }
+  },
+  "mapping_count": 8,
+  "created_at": "2025-06-28T22:49:55",
+  "updated_at": "2025-06-28T23:03:09"
+}

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐿️ FETCH Générateur d'URLs DS</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐿️</text></svg>">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dsfr.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom-styles.css') }}">
+</head>
+<body>
+    <!-- En-tête DSFR officiel -->
+    <header role="banner" class="fr-header">
+        <div class="fr-header__body">
+            <div class="fr-container">
+                <div class="fr-header__body-row">
+                    <div class="fr-header__brand fr-enlarge-link">
+                        <div class="fr-header__brand-top">
+                            <div class="fr-header__logo">
+                                <a href="/" title="Accueil - Générateur URLs Démarches Simplifiées">
+                                    <p class="fr-logo">
+                                        République<br>Française
+                                    </p>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="fr-header__service">
+                            <a href="/" title="Accueil - Générateur URLs Démarches Simplifiées">
+                                <p class="fr-header__service-title">🐿️ FETCH Générateur d'URLs Démarches Simplifiées</p>
+                            </a>
+                            <p class="fr-header__service-tagline">Pré-remplissage aide DGER</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Popup de configuration -->
+    {% if mapping_status %}
+    <div class="config-popup {% if not mapping_status.loaded %}error{% endif %}" id="configPopup">
+        <button class="close-btn" onclick="closePopup()">&times;</button>
+        <div class="popup-content">
+            {% if mapping_status.loaded %}
+            <strong>✅ Configuration chargée</strong>
+            <div>{{ mapping_status.filename }}</div>
+            <small>{{ mapping_status.mappings_count }} mappings disponibles</small>
+            {% else %}
+            <strong>❌ Erreur de configuration</strong>
+            <div>Fichier de mapping non trouvé</div>
+            <small>Vérifiez la variable CONFIG_FILE_PATH dans votre .env</small>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="fr-container">
+        <div class="main-content">
+            <div class="search-section">
+                <h2>Recherche par email</h2>
+                <div class="fr-alert fr-alert--info">
+                    <p><strong>Information :</strong> Saisissez l'adresse email pour rechercher les enregistrements correspondants dans la base Grist et générer automatiquement les liens vers les dossiers pré-remplis.</p>
+                </div>
+                
+                <form id="searchForm">
+                    <div class="fr-input-group">
+                        <label class="fr-label" for="email">Adresse email :</label>
+                        <input class="fr-input" type="email" id="email" name="email" required placeholder="exemple@domain.com">
+                    </div>
+                    
+                    <button type="submit" class="fr-btn fr-btn--primary" id="searchBtn">
+                        Rechercher et générer les liens
+                    </button>
+                </form>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    Recherche en cours...
+                </div>
+
+                <div class="fr-alert fr-alert--error" id="errorMessage" style="display: none;">
+                    <p id="errorText"></p>
+                </div>
+            </div>
+
+            <div class="results-section" id="resultsSection">
+                <h2>Résultats</h2>
+                <div class="stats" id="stats"></div>
+                <div id="resultsContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fermer le popup automatiquement après 5 secondes
+        setTimeout(function() {
+            closePopup();
+        }, 5000);
+
+        function closePopup() {
+            const popup = document.getElementById('configPopup');
+            if (popup) {
+                popup.style.animation = 'slideOut 0.3s ease-in forwards';
+                setTimeout(function() {
+                    popup.style.display = 'none';
+                }, 300);
+            }
+        }
+
+        // Gestion du formulaire de recherche
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchForm = document.getElementById('searchForm');
+            
+            if (searchForm) {
+                searchForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const email = document.getElementById('email').value;
+                    const loadingEl = document.getElementById('loading');
+                    const errorEl = document.getElementById('errorMessage');
+                    const errorText = document.getElementById('errorText');
+                    const resultsEl = document.getElementById('resultsSection');
+                    const searchBtn = document.getElementById('searchBtn');
+                    
+                    // Reset states
+                    loadingEl.style.display = 'block';
+                    errorEl.style.display = 'none';
+                    resultsEl.style.display = 'none';
+                    searchBtn.disabled = true;
+                    
+                    try {
+                        const formData = new FormData();
+                        formData.append('email', email);
+                        
+                        const response = await fetch('/search', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (!response.ok) {
+                            throw new Error(data.error || 'Erreur lors de la recherche');
+                        }
+                        
+                        displayResults(data);
+                        
+                    } catch (error) {
+                        errorText.textContent = error.message;
+                        errorEl.style.display = 'block';
+                    } finally {
+                        loadingEl.style.display = 'none';
+                        searchBtn.disabled = false;
+                    }
+                });
+            }
+        });
+
+        function displayResults(data) {
+            const resultsEl = document.getElementById('resultsSection');
+            const statsEl = document.getElementById('stats');
+            const contentEl = document.getElementById('resultsContent');
+            
+            statsEl.textContent = data.total + ' résultat(s) trouvé(s)';
+            
+            if (data.results.length === 0) {
+                contentEl.innerHTML = '<div class="fr-alert fr-alert--warning"><p>Aucun résultat trouvé pour cette adresse email.</p></div>';
+            } else {
+                let tableHTML = '<table class="results-table"><thead><tr>';
+                
+                // En-têtes des colonnes
+                data.columns.forEach(function(col) {
+                    tableHTML += '<th>' + col + '</th>';
+                });
+                tableHTML += '<th>Lien généré</th></tr></thead><tbody>';
+                
+                // Lignes de données
+                data.results.forEach(function(result) {
+                    tableHTML += '<tr>';
+                    
+                    // Données des colonnes
+                    data.columns.forEach(function(col) {
+                        const value = result.data[col] || '';
+                        tableHTML += '<td>' + escapeHtml(String(value)) + '</td>';
+                    });
+                    
+                    // Colonne URL
+                    tableHTML += '<td class="url-cell">';
+                    if (result.url.indexOf('http') === 0) {
+                        tableHTML += '<a href="' + result.url + '" target="_blank" class="url-link">📄 Accéder au dossier</a>';
+                    } else {
+                        tableHTML += '<span style="color: #c1000a; font-size: 12px;">' + escapeHtml(result.url) + '</span>';
+                    }
+                    tableHTML += '</td></tr>';
+                });
+                
+                tableHTML += '</tbody></table>';
+                contentEl.innerHTML = tableHTML;
+            }
+            
+            resultsEl.style.display = 'block';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
